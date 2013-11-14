@@ -38,6 +38,15 @@ psf = 250 * dgauss(xx, yy,
                    np.floor(trc_window_l.magnitude / 2),
                    psf_width.to(ureg.px).magnitude)
 
+# Time goes from 0 ms to 3 * ontime with a step two orders of
+# magnitude better than the exposure time
+resolution = exposure / 100
+time = np.arange(0, 3 * ontime.magnitude, resolution.magnitude)
+state = np.zeros(time.shape)
+t_on = 5 * ureg.millisecond
+state[(t_on / resolution).magnitude:
+     ((t_on + ontime)/ resolution).magnitude] = 1
+
 # Adding noise
 readout = np.random.normal(loc=50, scale=10, size=psf.shape)
 window = np.array([np.random.poisson(lam=psfi) for psfi in psf])
