@@ -34,28 +34,40 @@ y = x
 xx, yy = np.meshgrid(x, y, sparse=True)
 
 # PSF calculation
-psf = 250 * dgauss(xx, yy,
+psf = 2.5 * dgauss(xx, yy,
                    np.floor(trc_window_l.magnitude / 2),
                    psf_width.to(ureg.px).magnitude)
 
 # Time goes from 0 ms to 3 * ontime with a step two orders of
 # magnitude better than the exposure time
 resolution = exposure / 100
-time = np.arange(0, 3 * ontime.magnitude, resolution.magnitude)
-state = np.zeros(time.shape)
+t_window = 3 * ontime
+time = np.arange(0, t_window.magnitude, resolution.magnitude)
+state = np.zeros(time.shape, dtype=bool)
 t_on = 5 * ureg.millisecond
 state[(t_on / resolution).magnitude:
-     ((t_on + ontime)/ resolution).magnitude] = 1
+     ((t_on + ontime)/ resolution).magnitude] = True
 
-# Adding noise
-readout = np.random.normal(loc=50, scale=10, size=psf.shape)
-window = np.array([np.random.poisson(lam=psfi) for psfi in psf])
-#window = readout
-window = window + readout
+# Windows with gaussian noise incorporated
+windows = np.array([np.random.normal(loc=0.8, scale=1, size=psf.shape)
+                   for i in time])
+
+# Photon's contribution to signal
+win_photons = np.array([np.array([np.random.poisson(lam=psfi) for psfi in psf])
+                       for i in np.arange(np.sum(state))])
+
+# noise + signal when dye is on
+windows[state] = windows[state] + win_photons
+
+windows_ccd = windows.reshape(t_window.magnitude, -1, x.size, x.size)
+
+signal = np.array([group.sum(0) for group in windows_ccd])
 
 # Plot
-h = plt.imshow(window, cmap=plt.cm.jet, interpolation='nearest')
+h = plt.imshow(signal[10], cmap=plt.cm.jet, interpolation='nearest')
 cbar = plt.colorbar()
 plt.show()
 
-print(np.sum(window))
+trace = np.array([window.sum() for window in signal])
+plt.plot(trace)
+plt.show()
