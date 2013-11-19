@@ -7,6 +7,8 @@ Created on Fri Nov  8 14:49:49 2013
 
 from __future__ import division, with_statement, print_function
 
+import timeit
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -28,46 +30,77 @@ emission_rate = 1000 / ureg.millisecond     # Means 1000 photons per ms
 ontime = 5 * ureg.millisecond
 exposure = 1 * ureg.millisecond
 
-# Pixel grid
-x = np.arange(0, trc_window_l.magnitude)
-y = x
-xx, yy = np.meshgrid(x, y, sparse=True)
+def ontiming():
 
-# PSF calculation
-psf = 2.5 * dgauss(xx, yy,
-                   np.floor(trc_window_l.magnitude / 2),
-                   psf_width.to(ureg.px).magnitude)
+    # Pixel grid
+    x = np.arange(0, trc_window_l.magnitude)
+    y = x
+    xx, yy = np.meshgrid(x, y, sparse=True)
 
-# Time goes from 0 ms to 3 * ontime with a step two orders of
-# magnitude better than the exposure time
-resolution = exposure / 100
-t_window = 3 * ontime
-time = np.arange(0, t_window.magnitude, resolution.magnitude)
-state = np.zeros(time.shape, dtype=bool)
-t_on = 5 * ureg.millisecond
-state[(t_on / resolution).magnitude:
-     ((t_on + ontime)/ resolution).magnitude] = True
+    # PSF calculation
+    psf = 3 * dgauss(xx, yy,
+                       np.floor(trc_window_l.magnitude / 2),
+                       psf_width.to(ureg.px).magnitude)
 
-# Windows with gaussian noise incorporated
-windows = np.array([np.random.normal(loc=0.8, scale=1, size=psf.shape)
-                   for i in time])
+    # Time goes from 0 ms to 3 * ontime with a step two orders of
+    # magnitude better than the exposure time
+    resolution = exposure / 100
+    t_window = 3 * ontime
+    time = np.arange(0, t_window.magnitude, resolution.magnitude)
 
-# Photon's contribution to signal
-win_photons = np.array([np.array([np.random.poisson(lam=psfi) for psfi in psf])
-                       for i in np.arange(np.sum(state))])
+    t_ons = np.arange(4, 5, 0.2) * ureg.millisecond
 
-# noise + signal when dye is on
-windows[state] = windows[state] + win_photons
+    n = 100
+    ratio = np.zeros((t_ons.size, n))
 
-windows_ccd = windows.reshape(t_window.magnitude, -1, x.size, x.size)
+    for t_on in t_ons:
 
-signal = np.array([group.sum(0) for group in windows_ccd])
+        state = np.zeros(time.shape, dtype=bool)
+        state[(t_on / resolution).magnitude:
+             ((t_on + ontime)/ resolution).magnitude] = True
 
-# Plot
-h = plt.imshow(signal[10], cmap=plt.cm.jet, interpolation='nearest')
-cbar = plt.colorbar()
-plt.show()
 
-trace = np.array([window.sum() for window in signal])
-plt.plot(trace)
-plt.show()
+
+        # Windows with gaussian noise incorporated
+        windows = np.random.normal(loc=0,
+                                   scale=5,
+                                   size=(n,
+                                         time.size,
+                                         trc_window_l.magnitude,
+                                         trc_window_l.magnitude))
+
+        # Photon's contribution to signal
+        win_photons = np.random.poisson(lam=psf,
+                                        size=(n,
+                                              np.sum(state),
+                                              trc_window_l.magnitude,
+                                              trc_window_l.magnitude))
+
+        # noise + signal when dye is on
+        windows[:, state] = windows[:, state] + win_photons
+
+        # Reshape grouping signal from each exposure
+        windows_ccd = windows.reshape(n, t_window.magnitude, -1, x.size, x.size)
+        signal = np.round(windows_ccd.sum(2))
+
+        # CCD plot
+        #h = plt.imshow(signal[7], cmap=plt.cm.jet, interpolation='nearest')
+        #cbar = plt.colorbar()
+        #plt.show()
+
+        trace = signal.sum(axis=(2,3))
+        ratio[np.where(t_ons.magnitude==t_on.magnitude), :] = trace[:, 4] / trace[:, 5]
+
+ontiming()
+
+#    hist, bin_edges = np.histogram(ratio, bins=50)
+#    bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
+#    plt.bar(bin_centres, hist, bin_edges[1] - bin_edges[0], alpha=0.5)
+#    plt.show()
+
+#    plt.plot(trace)
+
+#plt.grid('on')
+#plt.xlabel('Time [{}]'.format(ontime.units))
+#plt.ylabel('Photons')
+#plt.show()
