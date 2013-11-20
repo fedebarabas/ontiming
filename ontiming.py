@@ -8,7 +8,7 @@ Created on Fri Nov  8 14:49:49 2013
 from __future__ import division, with_statement, print_function
 
 import numpy as np
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 from pint import UnitRegistry
 ureg = UnitRegistry()
@@ -91,13 +91,14 @@ def ontiming():
     trace = signal.sum(axis=(3,4))
     ratio = trace[:, :, 4] / trace[:, :, 5]
     
-    #plt.plot(t_ons / 5, ratio.mean(1))
-    #plt.show()
+    plt.plot(t_ons, ratio.mean(1), 'bo')
+    plt.grid('on')
+    plt.show()
     
-    #for i in range(len(ratio)):
+#    for i in range(len(ratio)):
     #    print(ratio[i].mean())
     #    print(ratio[i].std())
-    #    plt.plot(trace[i, 0])
+#        plt.plot(trace[i, 0])
     
     #plt.grid('on')
     #plt.xlabel('Time [{}]'.format(ontime.units))
