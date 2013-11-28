@@ -11,9 +11,6 @@ import numpy as np
 from scipy.special import jn
 from scipy.optimize import curve_fit
 
-from pint import UnitRegistry
-ureg = UnitRegistry()
-
 def gauss(x, fwhm):
     return np.exp(- 4 * np.log(2) * (x / fwhm)**2)
 
@@ -21,6 +18,7 @@ def airy(x):
     return (2 * jn(1,2 * np.pi * x) / (2 * np.pi * x))**2
     
 def fwhm(wavelength, NA):
+    ''' Gives the FWHM (in nm) for a PSF with wavelength in nm'''
 
     x = np.arange(-2, 2, 0.01)
     y = airy(x)
@@ -39,7 +37,7 @@ if __name__ == "__main__":
     
     import matplotlib.pyplot as plt
     
-    wavelength = 670 * ureg.nanometer
+    wavelength = 670        # nm
     NA = 1.4
     
     x = np.arange(-2, 2, 0.01)
