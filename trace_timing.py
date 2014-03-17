@@ -13,28 +13,63 @@ from __future__ import division, with_statement, print_function
 import numpy as np
 import matplotlib.pyplot as plt
 
+
+def autocorr(x):
+    result = np.correlate(x, x, mode='same')
+    return result[result.size/2:]
+
 # For now, fixed number of transitions and molecules
 n_transitions = 10
-n_molecules = 20
+n_molecules = 15
 
 # Characteristic ontime and offtime of the molecule, in frame units
-ontime = 3
-offtime = 10
+ontime = 5
+offtime = 500
 
 # A single trace made of the concatenation of the traces of all molecules
 ontimes = np.random.exponential(ontime, n_transitions * n_molecules)
+#ontimes = ontime * np.ones(n_transitions * n_molecules)
+#ontimes = np.random.normal(ontime, ontime, n_transitions * n_molecules)
+#offtimes = np.random.normal(offtime, offtime, n_transitions * n_molecules)
+#offtimes = offtime * np.ones(n_transitions * n_molecules)
 offtimes = np.random.exponential(offtime, n_transitions * n_molecules)
 
-t_total = np.ceil((ontimes.sum() + offtimes.sum()) / 1000) * 1000
+# Total time of the experiment
+t_total = np.ceil((ontimes.sum() + offtimes.sum()) / 100) * 100
 
-trace_real = np.array(zip(ontimes, offtimes)).reshape(-1)
+# Trace calculation
+trace_real = np.zeros(100 * t_total)
 trace = np.zeros(t_total)
+t_transitions = np.cumsum(np.array(zip(ontimes, offtimes)).reshape(-1))
+trace_real[0:100 * t_transitions[0]] = 1
+for i in np.arange(1, len(t_transitions) / 2):
+    trace_real[100 * t_transitions[2 * i - 1]:100 * t_transitions[2 * i]] = 1
 
-ti = 0
-for i in np.arange(t_total):
+# Trace integration in each frame
+trace = np.array([np.sum(trace_real[100 * i:100 * (i + 1)])
+                 for i in np.arange(t_total)]) / 100
 
-    t_on = 0
-    t_off = 0
+# Autocorrelation
+corr = autocorr(trace)
 
-    while ti < i + 1:
-        t_on +=
+# Plots
+f, axarr = plt.subplots(2, 1)
+
+# Emission trace
+#axarr[0].plot(np.arange(0, t_total, 0.01), trace_real)
+#axarr[0].grid('on')
+#axarr[0].set_xlabel('Time [frames]')
+#axarr[0].set_ylim([-0.2, 1.2])
+#axarr[0].set_ylabel('State')
+
+# Measured trace
+axarr[0].plot(trace)
+axarr[0].grid('on')
+axarr[0].set_xlabel('Time [frames]')
+axarr[0].set_ylim([-0.2, 1.2])
+axarr[0].set_ylabel('On fraction')
+
+# Autocorrelation of measured trace
+axarr[1].plot(corr)
+axarr[1].set_xlabel('Time [frames]')
+axarr[1].grid('on')
