@@ -35,7 +35,7 @@ t_frame = 5      # [ms]
 n = 200
 koff = np.zeros(n)
 kon = np.zeros(n)
-x = np.arange(25)
+x = np.arange(0, 25 * t_frame, t_frame)
 
 for j in np.arange(n):
 
