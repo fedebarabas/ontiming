@@ -44,13 +44,14 @@ for j in np.arange(n):
     offtimes = np.random.exponential(offtime, n_transitions * n_molecules)
 
     # Total time of the experiment
-    n_frames = np.ceil(np.sum(ontimes + offtimes) / 100) * 100
+    n_frames = int(np.ceil(np.sum(ontimes + offtimes) / 100) * 100)
 
     # Trace calculation
     trace_real = np.zeros(100 * n_frames)
-    t_transitions = np.cumsum(np.array(zip(ontimes, offtimes)).reshape(-1))
+    t_transitions = np.cumsum(np.array(list(zip(ontimes, offtimes))).reshape(-1))
+
     trace_real[0:np.int(100 * t_transitions[0])] = 1
-    for i in np.arange(1, len(t_transitions) / 2):
+    for i in np.arange(1, len(t_transitions) / 2).astype(int):
         trace_real[np.int(100 * t_transitions[2 * i - 1]):
                    np.int(100 * t_transitions[2 * i])] = 1
 
